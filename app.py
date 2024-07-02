@@ -4,8 +4,9 @@ import threading
 from socket import gaierror, gethostbyname
 from multiprocessing.dummy import Pool as ThreadPool
 from urllib.parse import urlparse
-from flask import Flask, render_template, request, escape, jsonify
+from flask import Flask, render_template, request, jsonify
 from time import gmtime, strftime
+from markupsafe import escape
 
 from settings import refresh_interval, filename, site_down, number_threads, include_search
 
@@ -22,12 +23,12 @@ def is_reachable(url):
 
 
 def get_status_code(url):
-	""" This function returns the status code of the url."""
-	try:
-	    status_code = requests.get(url, timeout=30).status_code
-	    return status_code
-	except requests.ConnectionError:
-	    return site_down
+    """ This function returns the status code of the url."""
+    try:
+        status_code = requests.get(url, timeout=30).status_code
+        return status_code
+    except requests.ConnectionError:
+        return site_down
 
 
 def check_single_url(url):
