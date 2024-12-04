@@ -11,4 +11,4 @@ site_down = 'UNREACHABLE'
 number_threads = 8
 
 """ Enable a user submitted search through urls to verify they're in the file specified in 'filename'. """
-include_search = True
+include_search = False

@@ -4,8 +4,9 @@ import threading
 from socket import gaierror, gethostbyname
 from multiprocessing.dummy import Pool as ThreadPool
 from urllib.parse import urlparse
-from flask import Flask, render_template, request, escape, jsonify
+from flask import Flask, render_template, request, jsonify
 from time import gmtime, strftime
+from markupsafe import escape
 
 from settings import refresh_interval, filename, site_down, number_threads, include_search
 
@@ -13,6 +14,10 @@ from settings import refresh_interval, filename, site_down, number_threads, incl
 def is_reachable(url):
     """ This function checks to see if a host name has a DNS entry
     by checking for socket info."""
+    if url is None:
+        raise TypeError("URL cannot be None")
+    if not url.strip():  # Check if the URL is empty or only whitespace
+        return False
     try:
         gethostbyname(url)
     except gaierror:
@@ -22,12 +27,12 @@ def is_reachable(url):
 
 
 def get_status_code(url):
-	""" This function returns the status code of the url."""
-	try:
-	    status_code = requests.get(url, timeout=30).status_code
-	    return status_code
-	except requests.ConnectionError:
-	    return site_down
+    """ This function returns the status code of the url."""
+    try:
+        status_code = requests.get(url, timeout=30).status_code
+        return status_code
+    except requests.ConnectionError:
+        return site_down
 
 
 def check_single_url(url):
@@ -54,13 +59,16 @@ def check_multiple_urls():
     (specified in the filename variable) and
     returns their statuses as a dictionary."""
     statuses = {}
-    temp_list_statuses = []
     global last_update_time
     pool = ThreadPool(number_threads)
-    temp_list_statuses = pool.map(check_single_url, list_urls)
-    for i in range(len(list_urls)):
-        statuses[list_urls[i]] = temp_list_statuses[i]
-    last_update_time = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    try:
+        temp_list_statuses = pool.map(check_single_url, list_urls)
+        for i in range(len(list_urls)):
+            statuses[list_urls[i]] = temp_list_statuses[i]
+        last_update_time = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    finally:
+        pool.close()  # Ensure the pool is properly closed
+        pool.join()   # Wait for the worker threads to exit
     return statuses
 
 def compare_submitted(submitted):
